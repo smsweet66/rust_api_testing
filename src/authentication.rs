@@ -1,4 +1,6 @@
+use chrono::Utc;
 use paseto::tokens;
+use serde_json::json;
 
 ///Get the secret key from the file
 fn get_secret_key() -> String {
@@ -6,23 +8,39 @@ fn get_secret_key() -> String {
 	key
 }
 
-///Generate a token for a user
-pub fn generate_token(user_id: i32) -> String {
+///Create a token for a user
+pub fn create_token(user_id: i32) -> String {
 	let key = get_secret_key();
+	let dt = Utc::now() + chrono::Duration::hours(1);
+
 	let token = tokens::PasetoBuilder::new()
-		.set_key(key.as_bytes())
+		.set_encryption_key(key.as_bytes())
 		.set_issued_at(None)
-		.set_expiration_time(chrono::Duration::hours(1))
-		.set_claim("user_id", user_id)
+		.set_expiration(&dt)
+		.set_claim("user_id", json!(user_id))
 		.build()
-		.expect("Error generating token");
+		.expect("Error creating token");
+
 	token
 }
 
-///Validate a token and return the user_id
+///Verify a token
 pub fn validate_token(token: &str) -> Result<i32, String> {
 	let key = get_secret_key();
-	tokens::validate_local_token(token, None, key.as_bytes(), &tokens::TimeBackend::Chrono)
-		.map(|token| token.get_claim("user_id").unwrap())
-		.map_err(|_| "Error validating token".to_string())
+	let verified_token = tokens::validate_local_token(
+		token,
+		None,
+		key.as_bytes(),
+		&tokens::TimeBackend::Chrono);
+
+	match verified_token {
+		Ok(token) => {
+			let user_id = token["user_id"].as_i64();
+			match user_id {
+				Some(id) => Ok(id as i32),
+				None => Err(String::from("Error validating token"))
+			}
+		},
+		Err(_) => Err(String::from("Error validating token"))
+	}
 }

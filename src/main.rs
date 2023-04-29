@@ -35,7 +35,8 @@ async fn main() -> std::io::Result<()> {
             .service(user_routes::get_user)
             .service(user_routes::delete_user)
             .service(user_routes::update_user)
-            .service(user_routes::create_user)
+            .service(user_routes::register)
+            .service(user_routes::login)
     })
     .bind("localhost:8080")?
     .run()
