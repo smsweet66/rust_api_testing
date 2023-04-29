@@ -13,3 +13,5 @@ diesel = { version = "2.0.4", features = ["sqlite", "r2d2", "chrono"] }
 serde = { version = "1.0.160", features = ["derive"] }
 chrono = { version = "0.4.24", features = ["serde"] }
 env_logger = "0.10.0"
+rust-argon2 = "1.0.0"
+rand = "0.8.5"
