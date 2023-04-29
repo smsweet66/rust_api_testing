@@ -24,7 +24,7 @@ pub async fn get_user(pool: DB, id: web::Path<i32>) -> impl Responder {
 	}
 }
 
-#[delete("/users/{id}/delete")]
+#[delete("/users/{id}")]
 pub async fn delete_user(pool: DB, id: web::Path<i32>) -> impl Responder {
 	let res = delete_user_handler(pool, id.into_inner()).await;
 
@@ -34,7 +34,7 @@ pub async fn delete_user(pool: DB, id: web::Path<i32>) -> impl Responder {
 	}
 }
 
-#[put("/users/{id}/update")]
+#[put("/users/{id}")]
 pub async fn update_user(pool: DB, id: web::Path<i32>, item: web::Json<UserNew>) -> impl Responder {
 	let res = update_user_handler(pool, id.into_inner(), item).await;
 
@@ -44,7 +44,7 @@ pub async fn update_user(pool: DB, id: web::Path<i32>, item: web::Json<UserNew>)
 	}
 }
 
-#[post("/users/create")]
+#[post("/users")]
 pub async fn create_user(pool: DB, item: web::Json<UserNew>) -> impl Responder {
 	let res = create_user_handler(pool, item).await;
 
