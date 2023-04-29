@@ -9,7 +9,8 @@ use diesel::SqliteConnection;
 mod models;
 mod routes;
 mod schema;
-mod data_access;
+mod handlers;
+mod authentication;
 
 use self::routes::*;
 
@@ -31,7 +32,6 @@ async fn main() -> std::io::Result<()> {
             .service(math_routes::math)
             .service(math_routes::add)
             .service(math_routes::multiply)
-            .service(user_routes::get_users)
             .service(user_routes::get_user)
             .service(user_routes::delete_user)
             .service(user_routes::update_user)

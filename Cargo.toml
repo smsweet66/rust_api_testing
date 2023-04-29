@@ -15,3 +15,5 @@ chrono = { version = "0.4.24", features = ["serde"] }
 env_logger = "0.10.0"
 rust-argon2 = "1.0.0"
 rand = "0.8.5"
+openssl = { version = "0.10.52", features = ["vendored"] }
+paseto = "2.0.2+1.0.3"
