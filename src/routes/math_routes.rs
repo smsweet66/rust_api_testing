@@ -1,23 +1,18 @@
-use warp::Filter;
-use warp::filters::BoxedFilter;
+use actix_web::{HttpResponse, Responder, get, web};
 
-pub fn math() -> BoxedFilter<()> {
-	warp::path("math")
-		.and(warp::get())
-		.and(warp::path::end())
-		.boxed()
+#[get("/math")]
+pub async fn math() -> impl Responder {
+	HttpResponse::Ok().body("Math route")
 }
 
-pub fn plus() -> BoxedFilter<(i32, i32)> {
-	warp::path!("math" / "plus" / i32 / i32)
-		.and(warp::get())
-		.and(warp::path::end())
-		.boxed()
+#[get("/math/add/{a}/{b}")]
+pub async fn add(path: web::Path<(i32, i32)>) -> impl Responder {
+	let (a, b) = path.into_inner();
+	HttpResponse::Ok().body(format!("{} + {} = {}", a, b, a + b))
 }
 
-pub fn times() -> BoxedFilter<(i32, i32)> {
-	warp::path!("math" / "times" / i32 / i32)
-		.and(warp::get())
-		.and(warp::path::end())
-		.boxed()
+#[get("/math/multiply/{a}/{b}")]
+pub async fn multiply(path: web::Path<(i32, i32)>) -> impl Responder {
+	let (a, b) = path.into_inner();
+	HttpResponse::Ok().body(format!("{} * {} = {}", a, b, a * b))
 }

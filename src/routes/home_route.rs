@@ -1,8 +1,6 @@
-use warp::Filter;
-use warp::filters::BoxedFilter;
+use actix_web::{HttpResponse, get, Responder};
 
-pub fn home() -> BoxedFilter<()> {
-	warp::path::end()
-		.and(warp::get())
-		.boxed()
+#[get("/")]
+pub async fn root() -> impl Responder {
+	HttpResponse::Ok().body("Hello world!")
 }

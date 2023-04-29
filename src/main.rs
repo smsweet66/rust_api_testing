@@ -1,25 +1,43 @@
-use warp::{self, Filter};
+use actix_web::App;
+use actix_web::HttpServer;
+use actix_web::web::Data;
+use actix_web::web::JsonConfig;
+use diesel::r2d2::ConnectionManager;
+use diesel::r2d2::Pool;
+use diesel::SqliteConnection;
 
+mod models;
 mod routes;
-mod handlers;
-mod api;
+mod schema;
+mod data_access;
 
 use self::routes::*;
-use self::handlers::*;
 
-#[tokio::main]
-async fn main() {
-    let routes = home!()
-        .or(math!())
-        .or(plus!())
-        .or(times!());
-    
-    //create a server listening on localhost:3030 using a separate task
-    tokio::spawn(warp::serve(routes).run(([127, 0, 0, 1], 3030)));
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
 
-    //add shutdown for ctrl+c
-    match tokio::signal::ctrl_c().await {
-        Ok(_) => println!("Shutting down"),
-        Err(e) => eprintln!("Error: {}", e),
-    }
+    let database_url = "userbase.db";
+    let pool = Pool::builder()
+        .build(ConnectionManager::<SqliteConnection>::new(database_url))
+        .expect("Failed to create pool");
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(pool.clone()))
+            .app_data(JsonConfig::default())
+            .service(home_route::root)
+            .service(math_routes::math)
+            .service(math_routes::add)
+            .service(math_routes::multiply)
+            .service(user_routes::get_users)
+            .service(user_routes::get_user)
+            .service(user_routes::delete_user)
+            .service(user_routes::update_user)
+            .service(user_routes::create_user)
+    })
+    .bind("localhost:8080")?
+    .run()
+    .await
 }
