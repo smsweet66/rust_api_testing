@@ -1,10 +1,7 @@
-use actix_web::App;
-use actix_web::HttpServer;
-use actix_web::web::Data;
-use actix_web::web::JsonConfig;
-use diesel::r2d2::ConnectionManager;
-use diesel::r2d2::Pool;
+use actix_web::{App, HttpServer, web::Data, web::JsonConfig};
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
+use dotenv::dotenv;
 
 mod models;
 mod routes;
@@ -16,10 +13,12 @@ use self::routes::*;
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
-    let database_url = "userbase.db";
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = Pool::builder()
         .build(ConnectionManager::<SqliteConnection>::new(database_url))
         .expect("Failed to create pool");

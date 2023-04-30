@@ -9,6 +9,27 @@ use crate::authentication;
 
 type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
 
+pub enum UserError {
+	NotFound,
+	AlreadyExists,
+	InvalidPassword,
+	InvalidToken,
+	DatabaseError
+}
+
+impl UserError
+{
+	pub fn message(&self) -> String {
+		match self {
+			UserError::NotFound => "User not found".to_owned(),
+			UserError::AlreadyExists => "User already exists".to_owned(),
+			UserError::InvalidPassword => "Invalid password".to_owned(),
+			UserError::InvalidToken => "Invalid token".to_owned(),
+			UserError::DatabaseError => "Database error".to_owned()
+		}
+	}
+}
+
 fn hash(password: &[u8]) -> String {
 	let salt = rand::thread_rng().gen::<[u8; 32]>();
 	let config = Config::default();
@@ -19,7 +40,7 @@ fn verify(hash: &str, password: &[u8]) -> bool {
 	argon2::verify_encoded(hash, password).unwrap()
 }
 
-pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<String, diesel::result::Error> {
+pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<String, UserError> {
 	let mut conn = pool.get().unwrap();
 	let new_user = UserNew {
 		name: item.name.clone(),
@@ -27,46 +48,64 @@ pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<Stri
 		password: hash(&item.password.as_bytes()),
 	};
 
-	diesel::insert_into(users::table)
+	let result = diesel::insert_into(users::table)
 		.values(&new_user)
-		.execute(&mut conn)?;
+		.execute(&mut conn);
+
+	match result {
+		Ok(_) => (),
+		Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => return Err(UserError::AlreadyExists),
+		Err(_) => return Err(UserError::DatabaseError)
+	}
 
 	let user = users::table
 		.filter(users::email.eq(&item.email))
-		.first::<User>(&mut conn)?;
+		.first::<User>(&mut conn);
+
+	if user.is_err() {
+		return Err(UserError::DatabaseError);
+	}
+
+	let user = user.unwrap();
 
 	let token = authentication::create_token(user.id);
 
 	Ok(token)
 }
 
-pub async fn login_handler(pool: DB, item: web::Json<UserLogin>) -> Result<String, diesel::result::Error> {
+pub async fn login_handler(pool: DB, item: web::Json<UserLogin>) -> Result<String, UserError> {
 	let mut conn = pool.get().unwrap();
 	let user = users::table
 		.filter(users::email.eq(&item.email))
-		.first::<User>(&mut conn)?;
+		.first::<User>(&mut conn);
+
+	if user.is_err() {
+		return Err(UserError::NotFound);
+	}
+
+	let user = user.unwrap();
 
 	if verify(&user.password, &item.password.as_bytes()) {
 		let token = authentication::create_token(user.id);
 		Ok(token)
 	} else {
-		Err(diesel::result::Error::NotFound)
+		Err(UserError::InvalidPassword)
 	}
 }
 
-pub async fn get_user_handler(pool: DB, id: i32, token: &str) -> Result<User, String> {
-	let user_id = match authentication::validate_token(token) {
+pub async fn get_user_handler(pool: DB, token: &str) -> Result<User, UserError> {
+	let id = match authentication::validate_token(token) {
 		Ok(id) => id,
-		Err(_) => return Err("Invalid token".to_string()),
+		Err(_) => return Err(UserError::InvalidToken),
 	};
-
-	if user_id != id { return Err("Forbidden".to_string()) }
 
 	let mut conn = pool.get().unwrap();
 	let res = users::table.find(id).first::<User>(&mut conn);
+
 	match res {
 		Ok(user) => Ok(user),
-		Err(_) => Err("User not found".to_string()),
+		Err(diesel::result::Error::NotFound) => Err(UserError::NotFound),
+		Err(_) => Err(UserError::DatabaseError),
 	}
 }
 
@@ -84,10 +123,19 @@ pub async fn update_user_handler(pool: DB, id: i32, item: web::Json<UserNew>) ->
 	Ok(users::table.find(id).first::<User>(&mut conn)?)
 }
 
-pub async fn delete_user_handler(pool: DB, id: i32) -> Result<usize, diesel::result::Error> {
+pub async fn delete_user_handler(pool: DB, token: &str) -> Result<(), UserError> {
+	let id = match authentication::validate_token(token) {
+		Ok(id) => id,
+		Err(_) => return Err(UserError::InvalidToken),
+	};
+
 	let mut conn = pool.get().unwrap();
 	let res = diesel::delete(users::table.find(id))
-		.execute(&mut conn)?;
+		.execute(&mut conn);
 
-	Ok(res)
+	match res {
+		Ok(_) => Ok(()),
+		Err(diesel::result::Error::NotFound) => Err(UserError::NotFound),
+		Err(_) => Err(UserError::DatabaseError),
+	}
 }

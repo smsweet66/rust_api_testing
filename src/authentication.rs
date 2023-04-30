@@ -2,15 +2,9 @@ use chrono::Utc;
 use paseto::tokens;
 use serde_json::json;
 
-///Get the secret key from the file
-fn get_secret_key() -> String {
-	let key = std::fs::read_to_string("secret.key").expect("Error reading secret key");
-	key
-}
-
-///Create a token for a user
+///Create a one time use token for a user
 pub fn create_token(user_id: i32) -> String {
-	let key = get_secret_key();
+	let key = std::env::var("PASETO_KEY").expect("PASETO_KEY must be set");
 	let dt = Utc::now() + chrono::Duration::hours(1);
 
 	let token = tokens::PasetoBuilder::new()
@@ -26,12 +20,13 @@ pub fn create_token(user_id: i32) -> String {
 
 ///Verify a token
 pub fn validate_token(token: &str) -> Result<i32, String> {
-	let key = get_secret_key();
+	let key = std::env::var("PASETO_KEY").expect("PASETO_KEY must be set");
 	let verified_token = tokens::validate_local_token(
 		token,
 		None,
 		key.as_bytes(),
-		&tokens::TimeBackend::Chrono);
+		&tokens::TimeBackend::Chrono
+	);
 
 	match verified_token {
 		Ok(token) => {
@@ -41,6 +36,6 @@ pub fn validate_token(token: &str) -> Result<i32, String> {
 				None => Err(String::from("Error validating token"))
 			}
 		},
-		Err(_) => Err(String::from("Error validating token"))
+		Err(e) => Err(e.to_string())
 	}
 }

@@ -1,4 +1,4 @@
 /target
 
 userbase.db
-secret.key
+.env
