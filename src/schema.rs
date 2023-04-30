@@ -1,9 +1,9 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    profiles (id) {
-        id -> Integer,
-        user_id -> Integer,
+    profiles (pid) {
+        pid -> Integer,
+        uid -> Integer,
         name -> Text,
         body_sizes -> Text,
         created_at -> Timestamp,
@@ -12,8 +12,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    users (id) {
-        id -> Integer,
+    users (uid) {
+        uid -> Integer,
         name -> Text,
         email -> Text,
         password -> Text,
@@ -22,7 +22,7 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(profiles -> users (user_id));
+diesel::joinable!(profiles -> users (uid));
 
 diesel::allow_tables_to_appear_in_same_query!(
     profiles,

@@ -17,11 +17,9 @@ pub async fn get_user(pool: DB, req: HttpRequest) -> impl Responder {
 
 	match res {
 		Ok(user) => HttpResponse::Ok().json(user),
-		Err(e) => match e {
-			UserError::NotFound => HttpResponse::NotFound().body(e.message()),
-			UserError::InvalidToken => HttpResponse::Unauthorized().body(e.message()),
-			_ => HttpResponse::InternalServerError().body(e.message())
-		}
+		Err(UserError::NotFound) => HttpResponse::NotFound().body(UserError::NotFound.message()),
+		Err(UserError::InvalidToken) => HttpResponse::Unauthorized().body(UserError::InvalidToken.message()),
+		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
 }
 
@@ -38,21 +36,29 @@ pub async fn delete_user(pool: DB, req: HttpRequest) -> impl Responder {
 
 	match res {
 		Ok(_) => HttpResponse::Ok().body("User deleted"),
-		Err(e) => match e {
-			UserError::NotFound => HttpResponse::NotFound().body(e.message()),
-			UserError::InvalidToken => HttpResponse::Unauthorized().body(e.message()),
-			_ => HttpResponse::InternalServerError().body(e.message())
-		}
+		Err(UserError::NotFound) => HttpResponse::NotFound().body(UserError::NotFound.message()),
+		Err(UserError::InvalidToken) => HttpResponse::Unauthorized().body(UserError::InvalidToken.message()),
+		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
 }
 
-#[put("/users/{id}")]
-pub async fn update_user(pool: DB, id: web::Path<i32>, item: web::Json<UserNew>) -> impl Responder {
-	let res = update_user_handler(pool, id.into_inner(), item).await;
+#[put("/users")]
+pub async fn update_user(pool: DB, item: web::Json<UserNew>, req: HttpRequest) -> impl Responder {
+	let token = req.headers().get("Authorization");
+	if token.is_none() {
+		return HttpResponse::Unauthorized().body("Missing token");
+	}
+
+	let token = token.unwrap().to_str();
+
+	let res = update_user_handler(pool, item, token.unwrap()).await;
 
 	match res {
 		Ok(user) => HttpResponse::Ok().json(user),
-		Err(_) => HttpResponse::InternalServerError().body("Error trying to update user")
+		Err(UserError::NotFound) => HttpResponse::NotFound().body(UserError::NotFound.message()),
+		Err(UserError::InvalidToken) => HttpResponse::Unauthorized().body(UserError::InvalidToken.message()),
+		Err(UserError::AlreadyExists) => HttpResponse::Conflict().body(UserError::AlreadyExists.message()),
+		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
 }
 
@@ -62,10 +68,8 @@ pub async fn register(pool: DB, item: web::Json<UserNew>) -> impl Responder {
 
 	match res {
 		Ok(token) => HttpResponse::Ok().json(token),
-		Err(e) => match e {
-			UserError::AlreadyExists => HttpResponse::Conflict().body(e.message()),
-			_ => HttpResponse::InternalServerError().body(e.message())
-		}
+		Err(UserError::AlreadyExists) => HttpResponse::Conflict().body(UserError::AlreadyExists.message()),
+		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
 }
 
@@ -75,10 +79,8 @@ pub async fn login(pool: DB, item: web::Json<UserLogin>) -> impl Responder {
 
 	match res {
 		Ok(token) => HttpResponse::Ok().json(token),
-		Err(e) => match e {
-			UserError::NotFound => HttpResponse::NotFound().body(e.message()),
-			UserError::InvalidPassword => HttpResponse::Unauthorized().body(e.message()),
-			_ => HttpResponse::InternalServerError().body(e.message())
-		}
+		Err(UserError::NotFound) => HttpResponse::NotFound().body(UserError::NotFound.message()),
+		Err(UserError::InvalidPassword) => HttpResponse::Unauthorized().body(UserError::InvalidPassword.message()),
+		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
 }

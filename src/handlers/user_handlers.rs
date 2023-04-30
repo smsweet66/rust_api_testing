@@ -68,7 +68,7 @@ pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<Stri
 
 	let user = user.unwrap();
 
-	let token = authentication::create_token(user.id);
+	let token = authentication::create_token(user.uid);
 
 	Ok(token)
 }
@@ -86,7 +86,7 @@ pub async fn login_handler(pool: DB, item: web::Json<UserLogin>) -> Result<Strin
 	let user = user.unwrap();
 
 	if verify(&user.password, &item.password.as_bytes()) {
-		let token = authentication::create_token(user.id);
+		let token = authentication::create_token(user.uid);
 		Ok(token)
 	} else {
 		Err(UserError::InvalidPassword)
@@ -109,18 +109,36 @@ pub async fn get_user_handler(pool: DB, token: &str) -> Result<User, UserError> 
 	}
 }
 
-pub async fn update_user_handler(pool: DB, id: i32, item: web::Json<UserNew>) -> Result<User, diesel::result::Error> {
+pub async fn update_user_handler(pool: DB, item: web::Json<UserNew>, token: &str) -> Result<User, UserError> {
+	let id = match authentication::validate_token(token) {
+		Ok(id) => id,
+		Err(_) => return Err(UserError::InvalidToken),
+	};
+
 	let mut conn = pool.get().unwrap();
-	diesel::update(users::table.find(id))
+	let res = diesel::update(users::table.find(id))
 		.set((
 			users::name.eq(&item.name),
 			users::email.eq(&item.email),
 			users::password.eq(hash(&item.password.as_bytes()))),
 		)
-		.execute(&mut conn)?;
+		.execute(&mut conn);
 
+	match res {
+		Ok(_) => (),
+		Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => return Err(UserError::AlreadyExists),
+		Err(_) => return Err(UserError::DatabaseError)
+	}
 
-	Ok(users::table.find(id).first::<User>(&mut conn)?)
+	let user = users::table
+		.filter(users::email.eq(&item.email))
+		.first::<User>(&mut conn);
+
+	match user {
+		Ok(user) => Ok(user),
+		Err(diesel::result::Error::NotFound) => Err(UserError::NotFound),
+		Err(_) => Err(UserError::DatabaseError),
+	}
 }
 
 pub async fn delete_user_handler(pool: DB, token: &str) -> Result<(), UserError> {

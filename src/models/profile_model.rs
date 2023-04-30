@@ -6,8 +6,8 @@ use crate::schema::profiles;
 
 #[derive(Queryable, Serialize, Deserialize, Debug, Clone)]
 pub struct Profile {
-	pub id: i32,
-	pub user_id: i32,
+	pub pid: i32,
+	pub uid: i32,
 	pub name: String,
 	pub body_sizes: String,
 	pub created_at: chrono::NaiveDateTime,
@@ -18,7 +18,7 @@ pub struct Profile {
 #[diesel(belongs_to(User))]
 #[diesel(table_name = profiles)]
 pub struct ProfileNew {
-	pub user_id: i32,
+	pub uid: i32,
 	pub name: String,
 	pub body_sizes: String,
 }
