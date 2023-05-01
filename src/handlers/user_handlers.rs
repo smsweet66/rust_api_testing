@@ -68,7 +68,7 @@ pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<Stri
 
 	let user = user.unwrap();
 
-	let token = authentication::create_token(user.uid);
+	let token = authentication::create_token(user.id);
 
 	Ok(token)
 }
@@ -86,7 +86,7 @@ pub async fn login_handler(pool: DB, item: web::Json<UserLogin>) -> Result<Strin
 	let user = user.unwrap();
 
 	if verify(&user.password, &item.password.as_bytes()) {
-		let token = authentication::create_token(user.uid);
+		let token = authentication::create_token(user.id);
 		Ok(token)
 	} else {
 		Err(UserError::InvalidPassword)
