@@ -12,7 +12,7 @@ pub struct User {
 	pub updated_at: chrono::NaiveDateTime
 }
 
-#[derive(Debug, Clone, Insertable, AsChangeset, Serialize, Deserialize)]
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = users)]
 pub struct UserNew {
 	pub name: String,

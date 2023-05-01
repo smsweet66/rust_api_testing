@@ -1,4 +1,4 @@
-use actix_web::{App, HttpServer, web::Data, web::JsonConfig};
+use actix_web::{App, HttpServer, web::{self, Data, JsonConfig}};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
 use dotenv::dotenv;
@@ -28,14 +28,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .app_data(JsonConfig::default())
             .service(home_route::root)
-            .service(math_routes::math)
-            .service(math_routes::add)
-            .service(math_routes::multiply)
-            .service(user_routes::get_user)
-            .service(user_routes::delete_user)
-            .service(user_routes::update_user)
-            .service(user_routes::register)
-            .service(user_routes::login)
+            .service(web::scope("/math").configure(math_routes::config))
+            .service(web::scope("/users").configure(user_routes::config))
+            .service(web::scope("/profiles").configure(profile_routes::config))
     })
     .bind("localhost:8080")?
     .run()

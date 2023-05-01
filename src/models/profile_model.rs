@@ -1,4 +1,4 @@
-use diesel::{Queryable, Insertable, AsChangeset, Associations};
+use diesel::{Queryable, Insertable, Associations};
 use serde::{Deserialize, Serialize};
 use crate::models::user_model::User;
 use crate::schema::profiles;
@@ -14,7 +14,7 @@ pub struct Profile {
 	pub updated_at: chrono::NaiveDateTime
 }
 
-#[derive(Debug, Clone, Insertable, AsChangeset, Serialize, Deserialize, Associations)]
+#[derive(Debug, Clone, Insertable, Serialize, Deserialize, Associations)]
 #[diesel(belongs_to(User))]
 #[diesel(table_name = profiles)]
 pub struct ProfileNew {

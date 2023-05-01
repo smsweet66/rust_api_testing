@@ -4,8 +4,8 @@ use crate::{handlers::user_handlers::*, models::user_model::{UserNew, UserLogin}
 
 type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
 
-#[get("/users")]
-pub async fn get_user(pool: DB, req: HttpRequest) -> impl Responder {
+#[get("")]
+async fn get_user(pool: DB, req: HttpRequest) -> impl Responder {
 	let token = req.headers().get("Authorization");
 	if token.is_none() {
 		return HttpResponse::Unauthorized().body("Missing token");
@@ -23,8 +23,8 @@ pub async fn get_user(pool: DB, req: HttpRequest) -> impl Responder {
 	}
 }
 
-#[delete("/users")]
-pub async fn delete_user(pool: DB, req: HttpRequest) -> impl Responder {
+#[delete("")]
+async fn delete_user(pool: DB, req: HttpRequest) -> impl Responder {
 	let token = req.headers().get("Authorization");
 	if token.is_none() {
 		return HttpResponse::Unauthorized().body("Missing token");
@@ -42,8 +42,8 @@ pub async fn delete_user(pool: DB, req: HttpRequest) -> impl Responder {
 	}
 }
 
-#[put("/users")]
-pub async fn update_user(pool: DB, item: web::Json<UserNew>, req: HttpRequest) -> impl Responder {
+#[put("")]
+async fn update_user(pool: DB, item: web::Json<UserNew>, req: HttpRequest) -> impl Responder {
 	let token = req.headers().get("Authorization");
 	if token.is_none() {
 		return HttpResponse::Unauthorized().body("Missing token");
@@ -63,7 +63,7 @@ pub async fn update_user(pool: DB, item: web::Json<UserNew>, req: HttpRequest) -
 }
 
 #[post("/register")]
-pub async fn register(pool: DB, item: web::Json<UserNew>) -> impl Responder {
+async fn register(pool: DB, item: web::Json<UserNew>) -> impl Responder {
 	let res = register_handler(pool, item).await;
 
 	match res {
@@ -74,7 +74,7 @@ pub async fn register(pool: DB, item: web::Json<UserNew>) -> impl Responder {
 }
 
 #[post("/login")]
-pub async fn login(pool: DB, item: web::Json<UserLogin>) -> impl Responder {
+async fn login(pool: DB, item: web::Json<UserLogin>) -> impl Responder {
 	let res = login_handler(pool, item).await;
 
 	match res {
@@ -83,4 +83,12 @@ pub async fn login(pool: DB, item: web::Json<UserLogin>) -> impl Responder {
 		Err(UserError::InvalidPassword) => HttpResponse::Unauthorized().body(UserError::InvalidPassword.message()),
 		Err(e) => HttpResponse::InternalServerError().body(e.message())
 	}
+}
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+	cfg.service(get_user);
+	cfg.service(delete_user);
+	cfg.service(update_user);
+	cfg.service(register);
+	cfg.service(login);
 }
