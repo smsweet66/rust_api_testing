@@ -1,8 +1,8 @@
 use actix_web::{HttpResponse, Responder, web, get, post, put, delete, HttpRequest};
-use diesel::{r2d2::{Pool, ConnectionManager}, SqliteConnection};
+use diesel::{r2d2::{Pool, ConnectionManager}, PgConnection};
 use crate::{handlers::user_handlers::*, models::user_model::{UserNew, UserLogin}};
 
-type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
+type DB = web::Data<Pool<ConnectionManager<PgConnection>>>;
 
 #[get("")]
 async fn get_user(pool: DB, req: HttpRequest) -> impl Responder {

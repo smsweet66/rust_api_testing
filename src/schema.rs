@@ -2,10 +2,10 @@
 
 diesel::table! {
     profiles (id) {
-        id -> Integer,
-        user_id -> Integer,
-        name -> Text,
-        body_sizes -> Text,
+        id -> Int4,
+        user_id -> Int4,
+        name -> Varchar,
+        body_sizes -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -13,10 +13,10 @@ diesel::table! {
 
 diesel::table! {
     users (id) {
-        id -> Integer,
-        name -> Text,
-        email -> Text,
-        password -> Text,
+        id -> Int4,
+        name -> Varchar,
+        email -> Varchar,
+        password -> Varchar,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }

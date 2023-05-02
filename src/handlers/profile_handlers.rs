@@ -1,5 +1,5 @@
 use actix_web::web;
-use diesel::{r2d2::{Pool, ConnectionManager}, SqliteConnection, prelude::*};
+use diesel::{r2d2::{Pool, ConnectionManager}, PgConnection, prelude::*};
 
 use crate::{models::profile_model::*, authentication, schema::profiles};
 
@@ -22,7 +22,7 @@ impl ProfileError
     }
 }
 
-type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
+type DB = web::Data<Pool<ConnectionManager<PgConnection>>>;
 
 pub async fn get_profiles_handler(pool: DB, token: &str) -> Result<Vec<Profile>, ProfileError> {
     let mut conn = pool.get().unwrap();

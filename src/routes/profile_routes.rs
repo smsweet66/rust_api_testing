@@ -1,8 +1,8 @@
 use actix_web::{HttpRequest, get, post, put, delete, Responder, HttpResponse, web};
-use diesel::{r2d2::{Pool, ConnectionManager}, SqliteConnection};
+use diesel::{r2d2::{Pool, ConnectionManager}, PgConnection};
 use crate::{handlers::profile_handlers::*, models::profile_model::ProfileUpdate};
 
-type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
+type DB = web::Data<Pool<ConnectionManager<PgConnection>>>;
 
 #[get("")]
 async fn get_profiles(pool: DB, req: HttpRequest) -> impl Responder {

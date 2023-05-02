@@ -7,7 +7,7 @@ use crate::models::user_model::*;
 use crate::schema::users;
 use crate::authentication;
 
-type DB = web::Data<Pool<ConnectionManager<SqliteConnection>>>;
+type DB = web::Data<Pool<ConnectionManager<PgConnection>>>;
 
 pub enum UserError {
 	NotFound,
@@ -50,27 +50,16 @@ pub async fn register_handler(pool: DB, item: web::Json<UserNew>) -> Result<Stri
 
 	let result = diesel::insert_into(users::table)
 		.values(&new_user)
-		.execute(&mut conn);
+		.get_result::<User>(&mut conn);
 
 	match result {
-		Ok(_) => (),
-		Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => return Err(UserError::AlreadyExists),
-		Err(_) => return Err(UserError::DatabaseError)
+		Ok(user) => {
+			let token = authentication::create_token(user.id);
+			Ok(token)
+		},
+		Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => Err(UserError::AlreadyExists),
+		Err(_) => Err(UserError::DatabaseError)
 	}
-
-	let user = users::table
-		.filter(users::email.eq(&item.email))
-		.first::<User>(&mut conn);
-
-	if user.is_err() {
-		return Err(UserError::DatabaseError);
-	}
-
-	let user = user.unwrap();
-
-	let token = authentication::create_token(user.id);
-
-	Ok(token)
 }
 
 pub async fn login_handler(pool: DB, item: web::Json<UserLogin>) -> Result<String, UserError> {
@@ -122,22 +111,12 @@ pub async fn update_user_handler(pool: DB, item: web::Json<UserNew>, token: &str
 			users::email.eq(&item.email),
 			users::password.eq(hash(&item.password.as_bytes()))),
 		)
-		.execute(&mut conn);
+		.get_result::<User>(&mut conn);
 
 	match res {
-		Ok(_) => (),
+		Ok(user) => Ok(user),
 		Err(diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => return Err(UserError::AlreadyExists),
 		Err(_) => return Err(UserError::DatabaseError)
-	}
-
-	let user = users::table
-		.filter(users::email.eq(&item.email))
-		.first::<User>(&mut conn);
-
-	match user {
-		Ok(user) => Ok(user),
-		Err(diesel::result::Error::NotFound) => Err(UserError::NotFound),
-		Err(_) => Err(UserError::DatabaseError),
 	}
 }
 
